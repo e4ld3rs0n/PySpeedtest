@@ -3,6 +3,10 @@
 from datetime import datetime
 import argparse, speedtest, os.path
 
+# TODO:
+# - Handle exceptions (in case internet connection is absent or impossible)
+# - Handle other output formats
+
 def manageArgs():
     parser=argparse.ArgumentParser(
         usage='%(prog)s [options] -o <output file>',
