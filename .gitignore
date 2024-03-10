@@ -1,5 +1,6 @@
 # Test files
 test.*
+log.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
