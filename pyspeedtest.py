@@ -5,7 +5,7 @@ import argparse
 import speedtest
 import os.path
 
-SYS_LOG_FILE_PATH = "test.log" #"/var/log/pyspeedtest.log"
+SYS_LOG_FILE_PATH = "/var/log/pyspeedtest.log"
 
 def log_action(message, level='info'):
     with open(SYS_LOG_FILE_PATH, "a") as log:
