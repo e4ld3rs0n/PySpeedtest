@@ -34,5 +34,5 @@ $ pip3 install speedtest-cli
 ## Available options
 
 - `-o FILENAME`, `--output FILENAME`: Mandatory, the output log file
-- `-f FORMAT`, `--format FORMAT`: The format of the log file. Available formats: `csv` (CSV, default), `txt` (plaintext), `md` (markdown), `xls` (Excel)
+- `-f FORMAT`, `--format FORMAT`: The format of the log file. Available formats: `csv` (CSV, default), `txt` (plaintext), `md` (markdown)
 - `-s SEPARATOR`, `--separator SEPARATOR`: The separator character to use (default is ;)

@@ -5,16 +5,10 @@ import argparse
 import speedtest
 import os.path
 
-sysLogFilePath = "/var/log/pyspeedtest.log"
+SYS_LOG_FILE_PATH = "test.log" #"/var/log/pyspeedtest.log"
 
-# TODO:
-# - Handle exceptions (in case internet connection is absent or impossible)
-# - Handle other output formats
-
-def logAction(message, level='info'):
-    global sysLogFilePath
-
-    with open(sysLogFilePath, "a") as log:
+def log_action(message, level='info'):
+    with open(SYS_LOG_FILE_PATH, "a") as log:
         if level == 'info':
             log.write("[+] ")
         elif level == 'warning':
@@ -28,7 +22,7 @@ def logAction(message, level='info'):
         log.write(" " + message + "\n")
 
 
-def manageArgs():
+def manage_args():
     parser = argparse.ArgumentParser(
         usage='%(prog)s [options] -o <output file>',
         description="Internet speed tester using speedtest.net API.",
@@ -43,7 +37,7 @@ def manageArgs():
 
     parser.add_argument(
         '-f', '--format',
-        choices={"csv", "xls", "md", "txt"},
+        choices={"csv", "md", "txt"},
         default='csv',
         help='Specify an output format (default is CSV)'
     )
@@ -56,96 +50,116 @@ def manageArgs():
 
     return parser.parse_args()
 
-def main():
-    print_header = False
-    args = manageArgs()
 
-    if not os.path.isfile(args.output):
-        print_header = True
+def write_header(logfile, args, format='csv'):
+    if args.format == 'csv':
+        header = f'Date{args.separator}Time{args.separator}Result{args.separator}ISP{args.separator}Download (Mbps){args.separator}Upload (Mbps){args.separator}Ping (ms){args.separator}Server{args.separator}\n'
+        logfile.write(header)
+    elif args.format == 'md':
+        header = '| Date | Time | Result | ISP | Download | Upload | Ping | Server |\n'
+        header += '| --- | --- | --- | --- | --- | --- | --- | --- |\n'
+        logfile.write(header)
+    elif args.format == 'txt':
+        header = 'Date\t\tTime\t\tResult\t\tISP\tDownload\tUpload\tPing\tServer\n'
+        logfile.write(header)
+        pass
+
+
+def write_result(logfile, args, result, format='csv', success=True):
+    now = datetime.now()
+    
+    if format == 'csv':
+        result_str = f'{now.strftime("%d/%m/%Y")}' + args.separator
+        result_str += f'{now.strftime("%H:%M:%S")}' + args.separator
+
+        if success:
+            result_str += f'Completed' + args.separator
+            result_str += f'{result["client"]["isp"]}' + args.separator
+            result_str += f'{float(result["download"]) / 10**6:.2f}'.replace('.', ',') + args.separator
+            result_str += f'{float(result["upload"]) / 10**6:.2f}'.replace('.', ',') + args.separator
+            result_str += f'{float(result["ping"]):.2f}'.replace('.', ',') + args.separator
+            result_str += f'{result["server"]["host"]}' + args.separator
+        else:
+            result_str += f'Failed' + args.separator
+            result_str += f'None' + args.separator * 6
+    elif args.format == 'md':
+        result_str = f'| {now.strftime("%d/%m/%Y")} | '
+        result_str += f'{now.strftime("%H:%M:%S")} | '
+
+        if success:
+            result_str += f'Completed | '
+            result_str += f'{result["client"]["isp"]} | '
+            result_str += f'{float(result["download"]) / 10**6:.2f} Mbps | '
+            result_str += f'{float(result["upload"]) / 10**6:.2f} Mbps | '
+            result_str += f'{float(result["ping"]):.2f} ms | '
+            result_str += f'{result["server"]["host"]} |'
+        else:
+            result_str += f'Failed | ' + 'None | ' * 5
+    elif args.format == 'txt':
+        result_str = f'{now.strftime("%d/%m/%Y")}' + '\t'
+        result_str += f'{now.strftime("%H:%M:%S")}' + '\t'
+
+        if success:
+            result_str += f'Completed\t'
+            result_str += f'{result["client"]["isp"]}\t'
+            result_str += f'{float(result["download"]) / 10**6:.2f} Mbps\t'
+            result_str += f'{float(result["upload"]) / 10**6:.2f} Mbps\t'
+            result_str += f'{float(result["ping"]):.2f} ms\t'
+            result_str += f'{result["server"]["host"]}'
+        else:
+            result_str += f'Failed\t' + 'None\t' * 5
+    
+    logfile.write(result_str + '\n')
+
+
+def main():
+    args = manage_args()
+    print_header = not os.path.isfile(args.output)
 
     with open(args.output, '+a') as logfile:
         if print_header:
-            # Date, Time, ISP, Download, Upload, Ping, Server
-            if args.format == 'csv':
-                header = f'Date{args.separator}Time{args.separator}Result{args.separator}ISP{args.separator}Download{args.separator}Upload{args.separator}Ping{args.separator}Server{args.separator}\n'
-                logfile.write(header)
-            elif args.format == 'xls':
-                pass
-            elif args.format == 'md':
-                pass
-            elif args.format == 'txt':
-                pass
+            write_header(logfile, args, format=args.format)
 
-        # Test the speed
-        servers = []
-        threads = None
-        now = datetime.now()
-
-        logAction("Initiating speedtest...")
+        log_action("Initiating speedtest...")
         try:
             s = speedtest.Speedtest()
         except speedtest.ConfigRetrievalError as e:
-            logAction("Cannot connect to the network: " + str(e), 'error')
-
-            now.strftime("%d/%m/%Y %H:%M:%S")
-            resultStr = f'{now.strftime("%d/%m/%Y")}' + args.separator
-            resultStr += f'{now.strftime("%H:%M:%S")}' + args.separator
-            resultStr += f'FAIL' + args.separator
-            resultStr += f'None' + args.separator
-            resultStr += f'None' + args.separator
-            resultStr += f'None' + args.separator
-            resultStr += f'None' + args.separator
-            resultStr += f'None' + args.separator
-
-            logfile.write(resultStr + '\n')
-
+            log_action("Cannot connect to the network: " + str(e), 'error')
+            write_result(logfile, args, {}, format=args.format, success=False)
             exit(1)
 
-        logAction("Searching for the closest server...")
+        log_action("Searching for the closest server...")
         try:
-            s.get_servers(servers)
+            s.get_servers([])
             s.get_best_server()
         except speedtest.NoMatchedServers as e:
-            logAction("No servers found: " + str(e), 'error')
-
-            now.strftime("%d/%m/%Y %H:%M:%S")
-            resultStr = f'{now.strftime("%d/%m/%Y")}' + args.separator
-            resultStr += f'{now.strftime("%H:%M:%S")}' + args.separator
-            resultStr += f'FAIL' + args.separator
-            resultStr += f'None' + args.separator
-            resultStr += f'None' + args.separator
-            resultStr += f'None' + args.separator
-            resultStr += f'None' + args.separator
-            resultStr += f'None' + args.separator
-
-            logfile.write(resultStr + '\n')
-
+            log_action("No servers found: " + str(e), 'error')
+            write_result(logfile, args, {}, format=args.format, success=False)
+            exit(1)
+        except speedtest.SpeedtestBestServerFailure as e:
+            log_action("Request limit exceeded: " + str(e), 'error')
+            write_result(logfile, args, {}, format=args.format, success=False)
             exit(1)
 
+        log_action("Testing download speed...")
+        try:
+            s.download()
+        except speedtest.SpeedtestDownloadTestError as e:
+            log_action("Download test failed: " + str(e), 'error')
+            write_result(logfile, args, {}, format=args.format, success=False)
+            exit(1)
 
-        logAction("Testing download speed...")
-        s.download(threads=threads)
-
-        logAction("Testing upload speed...")
-        s.upload(threads=threads)
+        log_action("Testing upload speed...")
+        try:
+            s.upload()
+        except speedtest.SpeedtestUploadTestError as e:
+            log_action("Upload test failed: " + str(e), 'error')
+            write_result(logfile, args, {}, format=args.format, success=False)
+            exit(1)
+        
         results = s.results.dict()
+        write_result(logfile, args, results, format=args.format, success=True)
 
-        downloadf = float(results['download']) / 1000000
-        uploadf = float(results['upload']) / 1000000
-        pingf = float(results['ping'])
-
-        # Date, Time, ISP, Download, Upload, Ping, Server
-        now.strftime("%d/%m/%Y %H:%M:%S")
-        resultStr = f'{now.strftime("%d/%m/%Y")}' + args.separator
-        resultStr += f'{now.strftime("%H:%M:%S")}' + args.separator
-        resultStr += f'SUCCESS' + args.separator
-        resultStr += f'{results["client"]["isp"]}' + args.separator
-        resultStr += f'{downloadf:.2f} Mbps' + args.separator
-        resultStr += f'{uploadf:.2f} Mbps' + args.separator
-        resultStr += f'{pingf:.2f} ms' + args.separator
-        resultStr += f'{results["server"]["host"]}' + args.separator
-
-        logfile.write(resultStr + '\n')
 
 if __name__ == '__main__':
     main()
