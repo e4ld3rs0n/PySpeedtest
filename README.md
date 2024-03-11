@@ -3,6 +3,16 @@
 A very simple internet speed logger written in Python. Uses speedtest-cli API. It is intended
 to be used as a cron job on Linux machines.
 
+## Usage
+
+This script is intended to be used on a Nethesis device with crontab to periodically log internet speeds in a file. The idea is to make it work 
+
+The basic usage is as follows:
+
+```bash
+$ pyspeedtest.py -o <output file>
+```
+
 ## Requirements
 
 It relies on the `speedtest-cli` package. Either install the package with your Linux package manager:
@@ -19,15 +29,6 @@ $ sudo apt install speedtest-cli
 
 ```bash
 $ pip3 install speedtest-cli
-```
-
-## Usage
-
-This script is intended to be used with crontab to periodically log internet speeds in a file. 
-The basic usage is as follows:
-
-```bash
-$ pyspeedtest.py -o <output file>
 ```
 
 ## Available options

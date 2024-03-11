@@ -102,8 +102,26 @@ def main():
             exit(1)
 
         logAction("Searching for the closest server...")
-        s.get_servers(servers)
-        s.get_best_server()
+        try:
+            s.get_servers(servers)
+            s.get_best_server()
+        except speedtest.NoMatchedServers as e:
+            logAction("No servers found: " + str(e), 'error')
+
+            now.strftime("%d/%m/%Y %H:%M:%S")
+            resultStr = f'{now.strftime("%d/%m/%Y")}' + args.separator
+            resultStr += f'{now.strftime("%H:%M:%S")}' + args.separator
+            resultStr += f'FAIL' + args.separator
+            resultStr += f'None' + args.separator
+            resultStr += f'None' + args.separator
+            resultStr += f'None' + args.separator
+            resultStr += f'None' + args.separator
+            resultStr += f'None' + args.separator
+
+            logfile.write(resultStr + '\n')
+
+            exit(1)
+
 
         logAction("Testing download speed...")
         s.download(threads=threads)
